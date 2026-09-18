@@ -61,7 +61,7 @@ jobs:
           git config user.email "github-actions@github.com"
           git config user.name "github-actions"
 
-          git add manifests/query-service-deployment.yaml
+          git add manifest/query-service-deployment.yaml
 
           git commit -m "Update image to ${{ env.VERSION }}"
 
