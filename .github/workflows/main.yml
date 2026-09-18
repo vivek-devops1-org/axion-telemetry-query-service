@@ -41,7 +41,7 @@ jobs:
       - name: Update Kubernetes Manifest
         shell: powershell
         run: |
-          $file = "manifests/query-service-deployment.yaml"
+          $file = "manifest/query-service-deployment.yaml"
       
           $newImage = "${{env.ACR_SERVER}}/${{env.IMAGE_NAME}}:${{env.VERSION}}"
       
