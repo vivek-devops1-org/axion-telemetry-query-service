@@ -15,6 +15,6 @@ spec:
     spec:
       containers:
       - name: query-service
-        image: clusteraliregistry.azurecr.io/axion-query-service:v1
+        image: clusteraliregistry.azurecr.io/axion-query-service:v4
         ports:
         - containerPort: 8000
