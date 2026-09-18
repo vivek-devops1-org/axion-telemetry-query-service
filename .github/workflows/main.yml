@@ -1,0 +1,71 @@
+name: Build and Push to ACR
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+  id-token: write
+env:
+  IMAGE_NAME: axion-query-service
+  VERSION: v${{github.run_number}}
+  CLIENT_ID: ${{secrets.AZURE_CLIENT_ID}}
+  TENANT_ID: ${{secrets.AZURE_TENANT_ID}}
+  SUBSCRIPTION_ID: ${{secrets.AZURE_SUBSCRIPTION_ID}}
+  ACR_SERVER: ${{secrets.ACR_LOGIN_SERVER}}
+jobs:
+  Build-and-push:
+    name: build-push
+    runs-on: self-hosted
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.1.0  
+
+      - name: Azure Login
+        uses: Azure/login@v3
+        with:
+          client-id: ${{env.CLIENT_ID}}
+          tenant-id: ${{env.TENANT_ID}}
+          subscription-id: ${{env.SUBSCRIPTION_ID}}
+
+      - name: login ACR
+        run: az acr login --name ${{env.ACR_SERVER}}
+
+      - name: image build and tag
+        run: docker build -t ${{env.ACR_SERVER}}/${{env.IMAGE_NAME}}:${{env.VERSION}} .
+
+      - name: push to ACR
+        run: docker push ${{env.ACR_SERVER}}/${{env.IMAGE_NAME}}:${{env.VERSION}}
+
+      # ---------------------------------
+      # Update deployment.yaml
+      # ---------------------------------
+      - name: Update Kubernetes Manifest
+        shell: powershell
+        run: |
+          $file = "manifests/query-service-deployment.yaml"
+      
+          $newImage = "${{env.ACR_SERVER}}/${{env.IMAGE_NAME}}:${{env.VERSION}}"
+      
+          (Get-Content $file) `
+            -replace 'image:.*', "image: $newImage" |
+            Set-Content $file
+      
+          Write-Host "Updated deployment.yaml"
+      
+          Get-Content $file
+
+      # ---------------------------------
+      # Commit changes back
+      # ---------------------------------
+      - name: Commit and Push Changes
+        run: |
+          git config user.email "github-actions@github.com"
+          git config user.name "github-actions"
+
+          git add manifests/query-service-deployment.yaml
+
+          git commit -m "Update image to ${{ env.VERSION }}"
+
+          git push
+
+      # - name: deploy app
+      #   run: kubectl apply -f manifests/query-service-deployment.yaml
